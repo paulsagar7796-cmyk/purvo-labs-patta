@@ -1,0 +1,875 @@
+<title>Patta Gate</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=DM+Sans:wght@400..700&display=swap">
+<style>
+/* Layout: a working field tool. Brand band on top, photo + score side by side, stacking on phones.
+   Palette from the Purvo Labs deck: tea-garden green, copper, leaf-paper cream. */
+:root{
+  --band:#12362B; --band-ink:#F4EEE1; --band-line:#4F7566;
+  --bg:#F3EFE4; --card:#FFFCF5; --card2:#EDE5D2; --line:#DDD2BB;
+  --ink:#1F2B25; --muted:#5B675F; --accent:#9C511C; --accent2:#E0A060;
+  --btn:#12362B; --btn-ink:#F4EEE1; --btn2:#E6DCC6; --btn2-ink:#12362B;
+  --ok-bg:#D9EEDA; --ok:#1C6633; --bad-bg:#F6DCD6; --bad:#992F22; --warn-bg:#FBEBD2; --warn:#7A4A0C;
+  --slip:#E5F4DF; --slip-line:#25A85A; --chart:#12362B; --chart-axis:#4F7566; --chart-ink:#A9C2B4;
+  --display:"Fraunces", Georgia, serif; --body:"DM Sans", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --mono: ui-monospace, Menlo, Consolas, monospace;
+  --fine:#2E9E4F; --coarse:#E0A100; --stem:#D64545;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0F1E19; --card:#162B24; --card2:#1D3830; --line:#2D4A40;
+  --ink:#E8E3D5; --muted:#A3B5AA; --accent:#E8A86A; --accent2:#E0A060;
+  --btn:#E0A060; --btn-ink:#10241D; --btn2:#24443A; --btn2-ink:#E8E3D5;
+  --ok-bg:#1E4A2C; --ok:#A9E2B6; --bad-bg:#4E2620; --bad:#F2B3A8; --warn-bg:#4A3517; --warn:#F3D29E;
+  --slip:#17362A; --slip-line:#3CC274; --chart:#0B1813; --chart-axis:#3E6155; --chart-ink:#A3B5AA;
+  color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0F1E19; --card:#162B24; --card2:#1D3830; --line:#2D4A40;
+  --ink:#E8E3D5; --muted:#A3B5AA; --accent:#E8A86A; --accent2:#E0A060;
+  --btn:#E0A060; --btn-ink:#10241D; --btn2:#24443A; --btn2-ink:#E8E3D5;
+  --ok-bg:#1E4A2C; --ok:#A9E2B6; --bad-bg:#4E2620; --bad:#F2B3A8; --warn-bg:#4A3517; --warn:#F3D29E;
+  --slip:#17362A; --slip-line:#3CC274; --chart:#0B1813; --chart-axis:#3E6155; --chart-ink:#A3B5AA;
+  color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--band)}
+.wrap{padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px))}
+header.band{background:var(--band);color:var(--band-ink)}
+header .in{max-width:1280px;margin:0 auto;padding-block:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand small{display:block;color:var(--accent2);font-size:12px;letter-spacing:2.5px;text-transform:uppercase;font-weight:600}
+.brand h1{margin:0;font:600 26px/1.1 var(--display)}
+nav{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+nav a{color:var(--band-ink);text-decoration:none;border:1px solid var(--band-line);padding:7px 14px;border-radius:999px;font-weight:600;font-size:15px}
+nav a[aria-current="page"]{background:var(--accent2);border-color:var(--accent2);color:#12362B}
+nav a:focus-visible,button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent2);outline-offset:2px}
+main{max-width:1280px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:14px}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:5px 12px;font-weight:600;font-size:14px}
+.steps span.on{background:var(--band);color:var(--band-ink);border-color:var(--band)}
+.keys{margin-left:auto;font-size:13px;color:var(--muted)}
+.keys kbd{font:12px var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--card)}
+.grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:920px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;min-width:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sep{width:1px;align-self:stretch;background:var(--line)}
+button,.btn{font:600 15px var(--body);border:0;border-radius:10px;padding:10px 14px;cursor:pointer;background:var(--btn);color:var(--btn-ink);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+button.alt,.btn.alt{background:var(--btn2);color:var(--btn2-ink)}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button[aria-pressed="true"]{background:var(--accent2);color:#12362B}
+button:disabled,.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.wa{background:#1F8F4E;color:#fff}
+.stage{position:relative;margin-top:12px;background:var(--card2);border-radius:12px;overflow:hidden}
+.stage canvas{width:100%;height:auto;display:block;cursor:pointer;touch-action:manipulation}
+.scan{position:absolute;left:0;right:0;height:4px;background:var(--accent2);box-shadow:0 0 18px var(--accent2);top:0}
+.status{position:absolute;left:12px;bottom:12px;background:rgba(18,54,43,.9);color:#F4EEE1;padding:6px 12px;border-radius:999px;font-size:14px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:14px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{font-size:13px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.loadbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+.loadbar b{color:var(--ink)}
+.note{font-size:13px;color:var(--muted)}
+.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-weight:700}
+.big{font:600 68px/1 var(--display);color:var(--ink);font-variant-numeric:tabular-nums;margin-top:4px}
+.big small{font-size:28px}
+.range{color:var(--muted);font-size:15px;margin-top:4px}
+.verdict{display:inline-block;margin-top:10px;padding:4px 12px;border-radius:999px;font-weight:700;font-size:14px}
+.verdict.ok{background:var(--ok-bg);color:var(--ok)}.verdict.no{background:var(--bad-bg);color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700}
+td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.n{text-align:right;font-variant-numeric:tabular-nums}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px;vertical-align:0}
+.tbl{overflow-x:auto;margin-top:10px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:15px var(--body);background:var(--bg);color:var(--ink)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f2>div{min-width:0}
+.money{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:2px solid var(--line)}
+.money b{font:600 32px var(--display);color:var(--accent);font-variant-numeric:tabular-nums}
+details{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+summary{cursor:pointer;font-weight:600;color:var(--ink);font-size:14px}
+.slipbox{margin-top:12px;background:var(--slip);border-left:4px solid var(--slip-line);border-radius:12px;padding:12px}
+.slipbox img{display:block;width:100%;border-radius:8px;background:#fff}
+pre.sliptext{white-space:pre-wrap;font:13px/1.5 var(--mono);margin:0;color:var(--ink)}
+.toast{font-size:13px;font-weight:600;color:var(--ok)}
+h2{margin:0;font:600 22px var(--display);color:var(--ink)}
+/* ledger */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.tile b{display:block;font:600 28px var(--display);font-variant-numeric:tabular-nums}
+.tile span{font-size:13px;color:var(--muted)}
+.bar{height:10px;border-radius:5px;background:var(--card2);position:relative;min-width:80px}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--fine)}
+.bar u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.pill{font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.ex{background:var(--card2);color:var(--muted)}
+.pill.prem{background:var(--ok-bg);color:var(--ok)}
+.pill.low{background:var(--bad-bg);color:var(--bad)}
+/* ferment */
+.chartbox{background:var(--chart);border-radius:12px;padding:8px;margin-top:10px}
+.chartbox canvas{width:100%;height:auto;display:block}
+.sim{display:inline-block;background:var(--accent2);color:#12362B;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:1px}
+.swatch{height:64px;border-radius:12px;margin-top:12px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.alertbox{margin-top:10px;padding:12px;border-radius:12px;background:var(--warn-bg);color:var(--warn);font-weight:700}
+.alertbox.live{animation:pulse 1s infinite}
+@keyframes pulse{50%{filter:brightness(1.12)}}
+input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
+@media (prefers-reduced-motion: reduce){.alertbox.live{animation:none}.scan{display:none}}
+</style>
+
+<header class="band wrap">
+  <div class="in">
+    <div class="brand"><small>Purvo Labs</small><h1>Patta <span id="title2">Gate</span></h1></div>
+    <nav aria-label="Views">
+      <a href="#gate" id="navGate">Gate</a>
+      <a href="#ferment" id="navFerment">Ferment</a>
+      <a href="#ledger" id="navLedger">Today’s ledger</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<!-- ===================== GATE ===================== -->
+<section id="viewGate">
+  <div class="row" style="margin-bottom:12px">
+    <div class="steps"><span id="st1" class="on">1 · Spread</span><span id="st2">2 · Snap</span><span id="st3">3 · Score</span><span id="st4">4 · Share</span></div>
+    <div class="keys" id="keys">Keys: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> samples · <kbd>A</kbd> AI view · <kbd>F</kbd> Ferment · <kbd>L</kbd> ledger</div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="row">
+        <button id="btnCamera" type="button">📷 Take photo</button>
+        <button id="btnUpload" type="button" class="alt">Upload photo</button>
+        <span class="sep"></span>
+        <button type="button" class="alt" data-sample="good">Sample: good</button>
+        <button type="button" class="alt" data-sample="mixed">Sample: mixed</button>
+        <button type="button" class="alt" data-sample="poor">Sample: poor</button>
+        <span class="sep"></span>
+        <button type="button" class="ghost" id="btnAI" aria-pressed="false">AI view</button>
+      </div>
+      <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+      <input type="file" id="fileUp" accept="image/*" hidden>
+      <div class="stage" id="stage">
+        <canvas id="view" width="1000" height="750" aria-label="Leaf photo with each shoot labelled"></canvas>
+        <div class="scan" id="scan" hidden></div>
+        <div class="status" id="status" hidden></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--fine)"></i>F · Fine (bud + 2 leaves)</span>
+        <span><i style="background:var(--coarse)"></i>C · Coarse leaf</span>
+        <span><i style="background:var(--stem)"></i>S · Stem</span>
+        <span>Dashed box · check this one</span>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="loadbar">
+        <span id="loadInfo"><b>This load:</b> 1 photo</span>
+        <button type="button" class="alt" id="btnAdd">+ Add another handful</button>
+        <button type="button" class="ghost" id="btnNewLoad">New load</button>
+      </div>
+      <p class="note" id="srcNote" style="margin:8px 0 0">Tap a shoot to correct its label. Everything runs on this phone or laptop; no photo leaves the device.</p>
+    </div>
+
+    <div class="card" id="scoreCard">
+      <div class="eyebrow">Score</div>
+      <div class="big" id="flc">—<small>%</small></div>
+      <div class="range" id="flcRange">fine leaf by estimated weight</div>
+      <div id="verdict"></div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Class</th><th class="n">Shoots</th><th class="n">Weight share</th></tr></thead>
+          <tbody>
+            <tr><td><i class="sw" style="background:var(--fine)"></i>Fine</td><td class="n" id="nF">–</td><td class="n" id="wF">–</td></tr>
+            <tr><td><i class="sw" style="background:var(--coarse)"></i>Coarse</td><td class="n" id="nC">–</td><td class="n" id="wC">–</td></tr>
+            <tr><td><i class="sw" style="background:var(--stem)"></i>Stem</td><td class="n" id="nS">–</td><td class="n" id="wS">–</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="f2">
+        <div><label for="standard">Standard</label>
+          <select id="standard"><option value="weight">Tea Board · by weight</option><option value="count">By shoot count</option></select></div>
+        <div><label for="target">Target fine leaf %</label><input id="target" type="number" value="65" min="0" max="100"></div>
+      </div>
+      <div class="f2">
+        <div><label for="grower">Grower</label><input id="grower" value="Gogoi"></div>
+        <div><label for="load">Load (kg)</label><input id="load" type="number" value="40" min="0"></div>
+      </div>
+      <div class="f2">
+        <div><label for="point">Collection point</label><input id="point" value="Jorhat · Point 3"></div>
+        <div><label for="bench">Benchmark ₹/kg (example)</label><input id="bench" type="number" value="24" step="0.5"></div>
+      </div>
+      <div class="money"><span>Price applied <span id="ppk" class="note"></span></span><b id="amount">₹—</b></div>
+      <p class="note" style="margin:6px 0 0">Example rule: each point above or below target moves the price 1% (between −30% and +15%). The factory sets its own rule.</p>
+
+      <details>
+        <summary>Weight calibration (v0 factors)</summary>
+        <p class="note">Weight is estimated from each shoot’s area × a density factor. The pilot calibrates these against hand-sorted, weighed samples.</p>
+        <div class="f2">
+          <div><label for="dC">Coarse leaf vs fine</label><input id="dC" type="number" value="1.3" step="0.1" min="0.5"></div>
+          <div><label for="dS">Stem vs fine</label><input id="dS" type="number" value="1.8" step="0.1" min="0.5"></div>
+        </div>
+      </details>
+
+      <div class="slipbox">
+        <div class="row" style="justify-content:space-between">
+          <b>Slip for grower and factory</b>
+          <select id="lang" style="width:auto" aria-label="Slip language"><option value="en">English</option><option value="as">অসমীয়া</option><option value="hi">हिन्दी</option></select>
+        </div>
+        <img id="slipImg" alt="Slip image" style="margin-top:10px">
+        <details style="border:0;padding:0;margin-top:8px"><summary class="note">Slip as text</summary><pre class="sliptext" id="slipText"></pre></details>
+        <div class="row" style="margin-top:10px">
+          <a class="btn wa" id="btnWA" href="#" target="_blank" rel="noopener">Send on WhatsApp</a>
+          <button type="button" class="alt" id="btnCopy">Copy text</button>
+          <button type="button" id="btnSave">Save to ledger</button>
+          <span class="toast" id="toast" aria-live="polite"></span>
+        </div>
+        <p class="note" style="margin:8px 0 0">On a phone, press and hold the slip image to save or share it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FERMENT ===================== -->
+<section id="viewFerment" hidden>
+  <div class="grid">
+    <div class="card">
+      <div class="row"><h2>Fermentation monitor · Line 1</h2><span class="sim">SIMULATION</span></div>
+      <div class="chartbox"><canvas id="fcan" width="900" height="460" aria-label="Leaf colour over time with the predicted best point"></canvas></div>
+      <p class="note" style="margin:8px 0 0">Simulated colour curve. In the pilot, a camera with its own light over the belt measures this every few seconds.</p>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Batch inputs</div>
+      <label for="tIn">Room temperature: <b id="tV">27</b> °C</label><input id="tIn" type="range" min="20" max="34" value="27">
+      <label for="hIn">Humidity: <b id="hV">92</b> %</label><input id="hIn" type="range" min="70" max="98" value="92">
+      <label for="gIn">Gate fine leaf: <b id="gV">65</b> % <span id="gFrom" class="note"></span></label><input id="gIn" type="range" min="30" max="90" value="65">
+      <label for="speed">Speed</label>
+      <select id="speed"><option value="1">1 second = 1 minute</option><option value="2" selected>1 second = 2 minutes</option><option value="4">1 second = 4 minutes</option></select>
+      <div class="row" style="margin-top:14px">
+        <button type="button" id="fStart">▶ Start batch</button>
+        <button type="button" class="alt" id="fReset">Reset</button>
+      </div>
+      <div class="swatch" id="swatch">Green</div>
+      <div class="tbl"><table>
+        <tr><td>Time on belt</td><td class="n" id="fT">0 min</td></tr>
+        <tr><td>Colour index</td><td class="n" id="fC">0</td></tr>
+        <tr><td>Predicted best point</td><td class="n" id="fP">–</td></tr>
+      </table></div>
+      <div class="alertbox" id="fAlert" hidden></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== LEDGER ===================== -->
+<section id="viewLedger" hidden>
+  <div class="row" style="justify-content:space-between;margin-bottom:12px">
+    <div><h2>Today’s collection</h2><p class="note" style="margin:4px 0 0" id="ledgerNote">Every saved slip lands here. Kept on this device only.</p></div>
+    <div class="row"><button type="button" class="alt" id="btnCopyCSV">Copy as CSV</button><button type="button" class="ghost" id="btnClear">Clear ledger</button></div>
+  </div>
+  <div class="tiles">
+    <div class="tile"><b id="tLoads">0</b><span>loads</span></div>
+    <div class="tile"><b id="tKg">0</b><span>kg green leaf</span></div>
+    <div class="tile"><b id="tFlc">–</b><span>average fine leaf (by kg)</span></div>
+    <div class="tile"><b id="tPaid">₹0</b><span>paid out</span></div>
+  </div>
+  <div class="grid" style="margin-top:14px">
+    <div class="card">
+      <div class="eyebrow">Loads</div>
+      <div class="tbl"><table>
+        <thead><tr><th>Time</th><th>Grower</th><th class="n">kg</th><th class="n">Fine %</th><th class="n">₹/kg</th><th class="n">Amount</th></tr></thead>
+        <tbody id="ledgerRows"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Growers</div>
+      <p class="note" style="margin:4px 0 0">Average fine leaf per grower against the target line. Growers who stay above it are the ones a factory can reward with a provable premium.</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Grower</th><th>Fine leaf</th><th class="n">Avg</th><th></th></tr></thead>
+        <tbody id="growerRows"></tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const FAST = location.search.includes('selftest');
+const CLS = ['fine','coarse','stem'];
+const COLORS = {fine:[46,158,79], coarse:[224,161,0], stem:[214,69,69]};
+const LETTER = {fine:'F', coarse:'C', stem:'S'};
+const density = () => ({fine:1, coarse:+$('dC').value || 1.3, stem:+$('dS').value || 1.8});
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+};
+
+/* ---------------- views (hash routing) ---------------- */
+const VIEWS = {gate:'Gate', ferment:'Ferment', ledger:'Ledger'};
+function show(){
+  const v = (location.hash.slice(1) in VIEWS) ? location.hash.slice(1) : 'gate';
+  $('viewGate').hidden = v!=='gate'; $('viewFerment').hidden = v!=='ferment'; $('viewLedger').hidden = v!=='ledger';
+  for (const k in VIEWS) $('nav'+VIEWS[k]).toggleAttribute('aria-current', k===v), k===v && $('nav'+VIEWS[k]).setAttribute('aria-current','page');
+  $('title2').textContent = v==='ferment' ? 'Ferment' : v==='ledger' ? 'Ledger' : 'Gate';
+  if (v==='ferment'){ syncGate(); drawFerment(); }
+  if (v==='ledger') renderLedger();
+}
+window.addEventListener('hashchange', show);
+
+/* ---------------- state ---------------- */
+let S = null;            // current photo analysis
+let LOAD = [];           // earlier photos in this load: [{comps:[{cls,n}], hash}]
+let truth = null;        // ground truth of generated samples (self-test)
+let aiView = false;
+const view = $('view'), vctx = view.getContext('2d');
+
+/* ---------------- input ---------------- */
+$('btnCamera').onclick = () => $('fileCam').click();
+$('btnUpload').onclick = () => $('fileUp').click();
+$('fileCam').onchange = e => { loadFile(e.target.files[0]); e.target.value = ''; };
+$('fileUp').onchange = e => { loadFile(e.target.files[0]); e.target.value = ''; };
+document.querySelectorAll('[data-sample]').forEach(b => b.onclick = () => useSample(b.dataset.sample));
+$('btnAI').onclick = () => { aiView = !aiView; $('btnAI').setAttribute('aria-pressed', aiView); if (S) redraw(); };
+$('btnAdd').onclick = () => { if (!S) return; LOAD.push(snapshot(S)); S = null; $('btnAdd').disabled = true; $('srcNote').textContent = 'Now photograph another random handful from the same load.'; setStep(1); updateLoadInfo(); };
+$('btnNewLoad').onclick = () => { LOAD = []; if (S) { score(); } updateLoadInfo(); flash('New load started'); };
+function snapshot(s){ return {comps: s.comps.map(c => ({cls:c.cls, n:c.n})), hash: s.hash}; }
+function useSample(kind){
+  const r = generateSample(kind); truth = r.truth;
+  $('srcNote').textContent = 'Simulated sample image, generated on this device. Real photos work the same way. Tap a shoot to correct its label.';
+  run(r.canvas);
+}
+function loadFile(f){
+  if (!f) return;
+  truth = null;
+  const img = new Image();
+  img.onload = () => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img,0,0); URL.revokeObjectURL(img.src); $('srcNote').textContent = 'Your photo. Tap a shoot to correct its label.'; run(c); };
+  img.onerror = () => { $('srcNote').textContent = 'That file could not be opened as an image. Try a JPG or PNG photo.'; };
+  img.src = URL.createObjectURL(f);
+}
+
+/* ---------------- run, with a short scanning show ---------------- */
+async function run(src, quick){
+  setStep(2);
+  const MAX = 1000, k = Math.min(1, MAX/Math.max(src.width, src.height));
+  view.width = Math.round(src.width*k); view.height = Math.round(src.height*k);
+  vctx.drawImage(src, 0, 0, view.width, view.height);
+  const base = vctx.getImageData(0,0,view.width,view.height);
+  let result = null;
+  if (FAST || quick || matchMedia('(prefers-reduced-motion: reduce)').matches) result = analyse(base);
+  else {
+    const scan = $('scan'), status = $('status');
+    scan.hidden = status.hidden = false;
+    const msgs = ['Finding shoots…','Labelling fine, coarse, stem…','Estimating weight…'];
+    const t0 = performance.now(), dur = 1300;
+    setTimeout(() => { result = analyse(base); }, 30);
+    await new Promise(res => { (function anim(){
+      const p = Math.min(1,(performance.now()-t0)/dur);
+      scan.style.top = (p*100)+'%'; status.textContent = msgs[Math.min(2, Math.floor(p*3))];
+      if (p < 1 || !result) requestAnimationFrame(anim); else res();
+    })(); });
+    scan.hidden = status.hidden = true;
+  }
+  S = result; S.base = base; S.time = new Date();
+  S.hash = await fingerprint(base);
+  $('btnAdd').disabled = false;
+  redraw(); score(); setStep(3); updateLoadInfo();
+  if (window.__selftest) window.__selftest(S, truth);
+}
+function setStep(n){ for (let i=1;i<=4;i++) $('st'+i).classList.toggle('on', i<=n); }
+function updateLoadInfo(){
+  const photos = LOAD.length + (S ? 1 : 0);
+  const shoots = LOAD.reduce((s,p)=>s+p.comps.length,0) + (S ? S.comps.length : 0);
+  $('loadInfo').innerHTML = `<b>This load:</b> ${photos} photo${photos===1?'':'s'} · ${shoots} shoots`;
+}
+
+/* ============================================================
+   VISION v0: classical computer vision, no trained model yet
+   ============================================================ */
+function analyse(img){
+  const W = img.width, H = img.height, d = img.data, N = W*H;
+  const bg = borderMedian(d, W, H);                       // the white sheet / mat
+  const R = new Float32Array(N), G = new Float32Array(N), B = new Float32Array(N), f = new Uint8Array(N);
+  let dark = 0;
+  for (let i=0, p=0; i<N; i++, p+=4){                      // white-balance against the sheet
+    const r = Math.min(255, d[p]*235/bg[0]), g = Math.min(255, d[p+1]*235/bg[1]), b = Math.min(255, d[p+2]*235/bg[2]);
+    R[i]=r; G[i]=g; B[i]=b;
+    const mx = Math.max(r,g,b), mn = Math.min(r,g,b);
+    f[i] = Math.max(0, Math.min(255, (235 - (r+g+b)/3) + (mx-mn)));   // how unlike white paper
+  }
+  const th = Math.max(40, otsu(f));
+  let m = new Uint8Array(N);
+  for (let i=0;i<N;i++) m[i] = f[i] > th ? 1 : 0;
+  const rad = Math.max(1, Math.round(Math.min(W,H)/450));
+  m = dilate(erode(m,W,H,1),W,H,1);                        // open: remove specks, keep thin stalks
+  m = erode(dilate(m,W,H,rad+1),W,H,rad+1);                // close: join bud to stalk, fill holes
+  const lab = new Int32Array(N), comps = [], stack = new Int32Array(N);
+  const minArea = Math.max(60, N*0.0003);
+  let next = 1, fg = 0;
+  for (let s=0; s<N; s++){
+    if (!m[s]) continue; fg++;
+    if (lab[s]) continue;
+    const c = {id:next, n:0, sx:0, sy:0, sxx:0, syy:0, sxy:0, r:0, g:0, b:0, x0:W, y0:H, x1:0, y1:0};
+    let sp = 0; stack[sp++] = s; lab[s] = next;
+    while (sp){
+      const i = stack[--sp], x = i % W, y = (i / W) | 0;
+      c.n++; c.sx+=x; c.sy+=y; c.sxx+=x*x; c.syy+=y*y; c.sxy+=x*y; c.r+=R[i]; c.g+=G[i]; c.b+=B[i];
+      if (x<c.x0) c.x0=x; if (x>c.x1) c.x1=x; if (y<c.y0) c.y0=y; if (y>c.y1) c.y1=y;
+      if (x>0   && m[i-1] && !lab[i-1]) { lab[i-1]=next; stack[sp++]=i-1; }
+      if (x<W-1 && m[i+1] && !lab[i+1]) { lab[i+1]=next; stack[sp++]=i+1; }
+      if (y>0   && m[i-W] && !lab[i-W]) { lab[i-W]=next; stack[sp++]=i-W; }
+      if (y<H-1 && m[i+W] && !lab[i+W]) { lab[i+W]=next; stack[sp++]=i+W; }
+    }
+    comps.push(c); next++;
+  }
+  const keep = [];
+  for (const c of comps){
+    if (c.n < minArea) continue;
+    const mx = c.sx/c.n, my = c.sy/c.n;
+    const a = c.sxx/c.n - mx*mx, cc = c.syy/c.n - my*my, b = c.sxy/c.n - mx*my;
+    const t = Math.sqrt(((a-cc)/2)**2 + b*b);
+    const l1 = (a+cc)/2 + t, l2 = Math.max(1e-6, (a+cc)/2 - t);
+    c.cx = mx; c.cy = my; c.angle = 0.5*Math.atan2(2*b, a-cc);
+    c.length = 4*Math.sqrt(l1); c.width = 4*Math.sqrt(l2); c.elong = Math.sqrt(l1/l2);
+    const hsl = rgb2hsl(c.r/c.n, c.g/c.n, c.b/c.n); c.hue = hsl[0]; c.sat = hsl[1]; c.light = hsl[2];
+    const touchesEdge = c.x0 <= 1 || c.y0 <= 1 || c.x1 >= W-2 || c.y1 >= H-2;
+    c.edge = touchesEdge;
+    if (c.sat > 0.12 && c.hue >= 25 && c.hue <= 175) keep.push(c);   // plant-coloured only
+  }
+  classify(keep);
+  flagSuspects(keep);
+  return {W, H, lab, comps:keep, byId:new Map(keep.map(c => [c.id, c])), bg, fgShare: fg/N, mask:m};
+}
+function classify(cs){
+  const rest = [];
+  for (const c of cs){
+    if (c.elong >= 5 || (c.elong >= 3.2 && c.hue < 66)) c.cls = 'stem';   // long & thin, or brownish & long
+    else rest.push(c);
+  }
+  if (!rest.length) return;
+  // young shoots are lighter and smaller; mature leaf is darker and bigger: 2-group k-means
+  const L = rest.map(c => c.light), A = rest.map(c => Math.log(c.n));
+  const zs = v => { const m = v.reduce((s,x)=>s+x,0)/v.length; const sd = Math.sqrt(v.reduce((s,x)=>s+(x-m)**2,0)/v.length) || 1; return v.map(x => (x-m)/sd); };
+  const zl = zs(L), za = zs(A), sc = rest.map((c,i) => zl[i]-za[i]);
+  const iF = sc.indexOf(Math.max(...sc)), iC = sc.indexOf(Math.min(...sc));
+  let cF = [zl[iF], za[iF]], cC = [zl[iC], za[iC]], assign = [];
+  for (let it=0; it<15; it++){
+    assign = rest.map((c,i) => ((zl[i]-cF[0])**2 + (za[i]-cF[1])**2) <= ((zl[i]-cC[0])**2 + (za[i]-cC[1])**2) ? 'fine' : 'coarse');
+    const mean = k => { const ix = assign.map((a,i)=>a===k?i:-1).filter(i=>i>=0); return ix.length ? [ix.reduce((s,i)=>s+zl[i],0)/ix.length, ix.reduce((s,i)=>s+za[i],0)/ix.length] : null; };
+    cF = mean('fine') || cF; cC = mean('coarse') || cC;
+  }
+  const grp = k => rest.filter((c,i)=>assign[i]===k), gF = grp('fine'), gC = grp('coarse');
+  const avg = (g,fn) => g.reduce((s,c)=>s+fn(c),0)/(g.length||1);
+  const dL = avg(gF,c=>c.light) - avg(gC,c=>c.light), dA = avg(gF,c=>Math.log(c.n)) - avg(gC,c=>Math.log(c.n));
+  if (!gF.length || !gC.length || (dL < 0.05 && dA > -0.4)) rest.forEach(c => c.cls = c.light >= 0.40 ? 'fine' : 'coarse');
+  else rest.forEach((c,i) => c.cls = assign[i]);
+}
+function flagSuspects(cs){
+  // probably two shoots touching: much bigger than others of its class, or cut off by the photo edge
+  for (const k of CLS){
+    const g = cs.filter(c => c.cls===k).map(c => c.n).sort((a,b)=>a-b);
+    if (g.length < 3) continue;
+    const med = g[g.length>>1];
+    cs.filter(c => c.cls===k && c.n > 2.3*med).forEach(c => c.suspect = 'touching');
+  }
+  cs.filter(c => c.edge).forEach(c => c.suspect = 'edge');
+}
+function borderMedian(d, W, H){
+  const band = Math.max(4, Math.round(Math.min(W,H)*0.02)), rs=[], gs=[], bs=[];
+  for (let y=0;y<H;y+=2) for (let x=0;x<W;x+=2) if (x<band||y<band||x>=W-band||y>=H-band){ const p=(y*W+x)*4; rs.push(d[p]); gs.push(d[p+1]); bs.push(d[p+2]); }
+  const med = a => { a.sort((p,q)=>p-q); return Math.max(60, a[a.length>>1]); };
+  return [med(rs), med(gs), med(bs)];
+}
+function otsu(f){
+  const h = new Float64Array(256); for (let i=0;i<f.length;i++) h[f[i]]++;
+  const tot = f.length; let sum=0; for (let i=0;i<256;i++) sum += i*h[i];
+  let sB=0, wB=0, best=0, th=0;
+  for (let t=0;t<256;t++){ wB+=h[t]; if(!wB) continue; const wF=tot-wB; if(!wF) break; sB+=t*h[t];
+    const mB=sB/wB, mF=(sum-sB)/wF, v=wB*wF*(mB-mF)**2; if (v>best){best=v;th=t;} }
+  return th;
+}
+function boxCount(m, W, H, r){
+  const I = new Int32Array((W+1)*(H+1));
+  for (let y=0;y<H;y++){ let row=0; for (let x=0;x<W;x++){ row+=m[y*W+x]; I[(y+1)*(W+1)+x+1] = I[y*(W+1)+x+1] + row; } }
+  return (x,y) => { const xa=Math.max(0,x-r), ya=Math.max(0,y-r), xb=Math.min(W,x+r+1), yb=Math.min(H,y+r+1);
+    return [I[yb*(W+1)+xb]-I[ya*(W+1)+xb]-I[yb*(W+1)+xa]+I[ya*(W+1)+xa], (xb-xa)*(yb-ya)]; };
+}
+function erode(m,W,H,r){ const q=boxCount(m,W,H,r), o=new Uint8Array(W*H); for(let y=0;y<H;y++)for(let x=0;x<W;x++){const [s,a]=q(x,y); o[y*W+x]= s===a?1:0;} return o; }
+function dilate(m,W,H,r){ const q=boxCount(m,W,H,r), o=new Uint8Array(W*H); for(let y=0;y<H;y++)for(let x=0;x<W;x++){const [s]=q(x,y); o[y*W+x]= s>0?1:0;} return o; }
+function rgb2hsl(r,g,b){
+  r/=255; g/=255; b/=255; const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, dd=mx-mn;
+  if (!dd) return [0,0,l];
+  const s = dd/(1-Math.abs(2*l-1)); let h;
+  if (mx===r) h=((g-b)/dd)%6; else if (mx===g) h=(b-r)/dd+2; else h=(r-g)/dd+4;
+  h*=60; if (h<0) h+=360; return [h,s,l];
+}
+
+/* ---------------- photo quality checks ---------------- */
+function qualityChips(){
+  const chips = [], bgL = (S.bg[0]+S.bg[1]+S.bg[2])/3, bgSpread = Math.max(...S.bg) - Math.min(...S.bg);
+  if (bgL < 130) chips.push('Photo is dark. Move to better light.');
+  if (bgSpread > 45) chips.push('Background is not white. Use a plain white sheet.');
+  if (S.comps.length < 8) chips.push(`Only ${S.comps.length} shoots found. Spread 20–30 for a fair sample.`);
+  const touching = S.comps.filter(c => c.suspect==='touching').length;
+  if (touching) chips.push(`${touching} may be touching shoots. Spread them apart.`);
+  const edge = S.comps.filter(c => c.suspect==='edge').length;
+  if (edge) chips.push(`${edge} cut off by the photo edge.`);
+  if (S.fgShare > 0.45) chips.push('Leaf covers most of the photo. Leave white space between shoots.');
+  $('chips').innerHTML = chips.length ? chips.map(c => `<span class="chip">${c}</span>`).join('') : '<span class="chip ok">✓ Photo looks good for scoring</span>';
+}
+
+/* ---------------- drawing ---------------- */
+function redraw(){
+  const {W,H,lab,byId} = S;
+  const out = new ImageData(W, H), o = out.data, src = S.base.data;
+  if (aiView){
+    // what the computer sees: the foreground mask, coloured by class
+    for (let i=0,p=0;i<W*H;i++,p+=4){ const c = lab[i] && byId.get(lab[i]); const col = c ? COLORS[c.cls] : S.mask[i] ? [90,90,90] : [12,20,16]; o[p]=col[0]; o[p+1]=col[1]; o[p+2]=col[2]; o[p+3]=255; }
+  } else {
+    for (let i=0,p=0;i<W*H;i++,p+=4){
+      o[p]=src[p]; o[p+1]=src[p+1]; o[p+2]=src[p+2]; o[p+3]=255;
+      const c = lab[i] && byId.get(lab[i]); if (!c) continue;
+      const col = COLORS[c.cls], a = 0.42;
+      o[p]=src[p]*(1-a)+col[0]*a; o[p+1]=src[p+1]*(1-a)+col[1]*a; o[p+2]=src[p+2]*(1-a)+col[2]*a;
+    }
+  }
+  vctx.putImageData(out,0,0);
+  const fs = Math.max(14, Math.round(W/55));
+  vctx.font = `700 ${fs}px -apple-system,Segoe UI,Arial,sans-serif`;
+  vctx.lineWidth = Math.max(2, W/400);
+  for (const c of S.comps){
+    const col = `rgb(${COLORS[c.cls].join(',')})`, pad = 4;
+    if (aiView){
+      // centre and main axis: the shape measurements the model uses
+      const dx = Math.cos(c.angle)*c.length/2, dy = Math.sin(c.angle)*c.length/2;
+      vctx.strokeStyle = '#fff'; vctx.beginPath(); vctx.moveTo(c.cx-dx,c.cy-dy); vctx.lineTo(c.cx+dx,c.cy+dy); vctx.stroke();
+      vctx.fillStyle = '#fff'; vctx.beginPath(); vctx.arc(c.cx,c.cy,4,0,7); vctx.fill();
+    }
+    vctx.setLineDash(c.suspect ? [8,6] : []);
+    vctx.strokeStyle = col; vctx.strokeRect(c.x0-pad, c.y0-pad, c.x1-c.x0+2*pad, c.y1-c.y0+2*pad);
+    vctx.setLineDash([]);
+    const t = LETTER[c.cls] + (c.suspect ? ' ?' : ''), tw = vctx.measureText(t).width + 10;
+    vctx.fillStyle = col; vctx.fillRect(c.x0-pad, c.y0-pad-fs-6, tw, fs+6);
+    vctx.fillStyle = '#fff'; vctx.fillText(t, c.x0-pad+5, c.y0-pad-5);
+  }
+  if (aiView){ vctx.fillStyle = 'rgba(0,0,0,.6)'; vctx.fillRect(8,8,330,34); vctx.fillStyle = '#fff'; vctx.font = '600 16px -apple-system,Arial,sans-serif'; vctx.fillText('AI view: shoots separated from the sheet', 16, 31); }
+}
+view.addEventListener('click', e => {
+  if (!S) return;
+  const r = view.getBoundingClientRect();
+  const x = (e.clientX-r.left)*view.width/r.width, y = (e.clientY-r.top)*view.height/r.height;
+  let best=null, bd=1e9;
+  for (const c of S.comps){ if (x>=c.x0-10&&x<=c.x1+10&&y>=c.y0-10&&y<=c.y1+10){ const dd=(x-c.cx)**2+(y-c.cy)**2; if(dd<bd){bd=dd;best=c;} } }
+  if (!best) return;
+  best.cls = CLS[(CLS.indexOf(best.cls)+1)%3]; best.suspect = null;
+  redraw(); score();
+});
+
+/* ---------------- scoring across all photos in the load ---------------- */
+['standard','target','bench','grower','load','point','dC','dS','lang'].forEach(id => $(id).addEventListener('input', () => S && score()));
+function allComps(){ return LOAD.flatMap(p => p.comps).concat(S ? S.comps.map(c => ({cls:c.cls, n:c.n})) : []); }
+function flcOf(cs, std, D){
+  if (!cs.length) return 0;
+  if (std==='count') return 100*cs.filter(c=>c.cls==='fine').length/cs.length;
+  let f=0, t=0; for (const c of cs){ const w = c.n*D[c.cls]; t+=w; if (c.cls==='fine') f+=w; } return t ? 100*f/t : 0;
+}
+function bootstrap(cs, std, D){
+  // resample the shoots to show how sure the score is
+  if (cs.length < 5) return null;
+  const vals = [];
+  for (let b=0;b<300;b++){ const s = []; for (let i=0;i<cs.length;i++) s.push(cs[(Math.random()*cs.length)|0]); vals.push(flcOf(s,std,D)); }
+  vals.sort((a,b)=>a-b); return [vals[15], vals[284]];
+}
+function score(){
+  const cs = allComps(), D = density(), std = $('standard').value, target = +$('target').value || 65;
+  const T = {fine:{n:0,w:0}, coarse:{n:0,w:0}, stem:{n:0,w:0}};
+  for (const c of cs){ T[c.cls].n++; T[c.cls].w += c.n*D[c.cls]; }
+  const Wt = T.fine.w+T.coarse.w+T.stem.w || 1;
+  const flc = flcOf(cs, std, D), ci = bootstrap(cs, std, D);
+  S.T = T; S.flc = flc; S.N = cs.length; S.ci = ci;
+  $('flc').innerHTML = (cs.length ? flc.toFixed(1) : '—') + '<small>%</small>';
+  const photos = LOAD.length + 1;
+  $('flcRange').textContent = (std==='weight' ? 'fine leaf by estimated weight' : 'fine shoots by count') + (ci ? ` · likely ${ci[0].toFixed(0)}–${ci[1].toFixed(0)}%` : '') + (photos>1 ? ` · ${photos} photos` : '');
+  const ok = flc >= target;
+  $('verdict').innerHTML = cs.length ? `<span class="verdict ${ok?'ok':'no'}">${ok?'✓ Meets':'✗ Below'} target of ${target}%</span>` : '';
+  for (const k of CLS){ const K=k[0].toUpperCase(); $('n'+K).textContent=T[k].n; $('w'+K).textContent=(100*T[k].w/Wt).toFixed(0)+'%'; }
+  const bench = +$('bench').value || 0, load = +$('load').value || 0;
+  const factor = Math.max(0.7, Math.min(1.15, 1 + (flc-target)/100));
+  S.ppk = bench*factor; S.amt = S.ppk*load;
+  $('ppk').textContent = `₹${S.ppk.toFixed(2)}/kg`;
+  $('amount').textContent = rupees(S.amt);
+  qualityChips();
+  renderSlip();
+  syncGate();
+}
+const rupees = v => '₹' + v.toLocaleString('en-IN',{minimumFractionDigits:2, maximumFractionDigits:2});
+
+/* ---------------- slip in three languages ---------------- */
+const TXT = {
+  en:{title:'PATTA GATE · leaf quality slip', grower:'Grower', point:'Point', time:'Time', load:'Load', fine:'Fine leaf', byW:'by weight', byC:'by count', target:'target', shoots:'Shoots', f:'fine', c:'coarse', s:'stem', bench:'Benchmark', applied:'applied', amount:'Amount', photo:'Photo ID', photos:'photos', same:'Same slip sent to grower and factory.'},
+  as:{title:'পত্তা গেট · পাতৰ গুণমানৰ পৰ্চী', grower:'খেতিয়ক', point:'সংগ্ৰহ কেন্দ্ৰ', time:'সময়', load:'ওজন', fine:'মিহি পাত', byW:'ওজন অনুসৰি', byC:'গণনা অনুসৰি', target:'লক্ষ্য', shoots:'কুঁহিপাত', f:'মিহি', c:'ডাঠ', s:'ঠাৰি', bench:'বেঞ্চমাৰ্ক দৰ', applied:'প্ৰযোজ্য দৰ', amount:'মুঠ ধন', photo:'ফটো আইডি', photos:'খন ফটো', same:'একেখন পৰ্চী খেতিয়ক আৰু কাৰখানা দুয়োটালৈ পঠোৱা হৈছে।'},
+  hi:{title:'पत्ता गेट · पत्ती गुणवत्ता पर्ची', grower:'उत्पादक', point:'संग्रह केंद्र', time:'समय', load:'वज़न', fine:'बारीक पत्ती', byW:'वज़न के अनुसार', byC:'गिनती के अनुसार', target:'लक्ष्य', shoots:'कोंपलें', f:'बारीक', c:'मोटी', s:'डंठल', bench:'बेंचमार्क दर', applied:'लागू दर', amount:'राशि', photo:'फ़ोटो आईडी', photos:'फ़ोटो', same:'यही पर्ची उत्पादक और फ़ैक्टरी दोनों को भेजी गई।'}
+};
+function slipLines(){
+  const t = TXT[$('lang').value], std = $('standard').value, target = +$('target').value || 65, T = S.T;
+  const when = S.time.toLocaleString('en-IN',{dateStyle:'medium', timeStyle:'short'});
+  const photos = LOAD.length + 1;
+  return [
+    t.title,
+    `${t.grower}: ${$('grower').value}`,
+    `${t.point}: ${$('point').value}`,
+    `${t.time}: ${when}`,
+    `${t.load}: ${$('load').value} kg`,
+    `${t.fine}: ${S.flc.toFixed(1)}% ${std==='weight'?t.byW:t.byC} (${t.target} ${target}%) ${S.flc>=target?'✅':'⚠️'}`,
+    `${t.shoots}: ${S.N} (${t.f} ${T.fine.n} · ${t.c} ${T.coarse.n} · ${t.s} ${T.stem.n}) · ${photos} ${t.photos}`,
+    `${t.bench}: ₹${(+$('bench').value).toFixed(2)}/kg → ${t.applied} ₹${S.ppk.toFixed(2)}/kg`,
+    `${t.amount}: ${rupees(S.amt)}`,
+    `${t.photo}: ${S.hash}`,
+    t.same
+  ];
+}
+function renderSlip(){
+  const lines = slipLines(), text = lines.join('\n');
+  $('slipText').textContent = text;
+  $('btnWA').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  // slip as an image: photo + text, so it can be saved or forwarded from a phone
+  const Wd = 720, pad = 26, lh = 32, thumbW = Wd-2*pad, thumbH = Math.round(thumbW*view.height/view.width);
+  const c = document.createElement('canvas'); c.width = Wd; c.height = pad*2 + thumbH + 24 + lines.length*lh;
+  const x = c.getContext('2d');
+  x.fillStyle = '#FFFCF5'; x.fillRect(0,0,c.width,c.height);
+  x.fillStyle = '#12362B'; x.fillRect(0,0,c.width,10);
+  x.drawImage(view, pad, pad, thumbW, thumbH);
+  x.fillStyle = '#1F2B25';
+  lines.forEach((l,i) => { x.font = (i===0 ? '700 23px' : '20px') + ' "DM Sans",-apple-system,"Noto Sans Bengali","Noto Sans Devanagari",Arial,sans-serif'; x.fillText(l, pad, pad+thumbH+42+i*lh, Wd-2*pad); });
+  $('slipImg').src = c.toDataURL('image/png');
+}
+$('btnWA').addEventListener('click', () => setStep(4));
+$('btnCopy').onclick = () => {
+  const text = $('slipText').textContent;
+  const done = () => flash('Copied');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => selectSlip());
+  else selectSlip();
+};
+function selectSlip(){ const d = $('slipText').closest('details'); d.open = true; const r = document.createRange(); r.selectNodeContents($('slipText')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); flash('Selected: copy it from here'); }
+function flash(msg){ $('toast').textContent = msg; clearTimeout(flash.t); flash.t = setTimeout(() => $('toast').textContent = '', 2500); }
+async function fingerprint(img){
+  try { const h = await crypto.subtle.digest('SHA-256', img.data); return Array.from(new Uint8Array(h)).slice(0,6).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+  catch (e) { let h = 2166136261; for (let i=0;i<img.data.length;i+=7){ h ^= img.data[i]; h = Math.imul(h,16777619); } return (h>>>0).toString(16).padStart(8,'0'); }
+}
+
+/* ---------------- ledger ---------------- */
+const EXAMPLES = [
+  {grower:'Bora', kg:52, flc:78.4, ppk:24*1.134, ex:true, mins:-150},
+  {grower:'Saikia', kg:35, flc:58.2, ppk:24*0.932, ex:true, mins:-120},
+  {grower:'Bora', kg:47, flc:74.1, ppk:24*1.091, ex:true, mins:-95},
+  {grower:'Hazarika', kg:61, flc:66.0, ppk:24*1.01, ex:true, mins:-60},
+  {grower:'Saikia', kg:28, flc:61.5, ppk:24*0.965, ex:true, mins:-30}
+];
+let LEDGER = store.get('patta.ledger', null);
+if (!LEDGER){ const now = Date.now(); LEDGER = EXAMPLES.map(e => ({...e, amt:e.kg*e.ppk, time: now + e.mins*60000, target:65})); }
+$('btnSave').onclick = () => {
+  if (!S || !S.N) return;
+  LEDGER.push({grower:$('grower').value.trim() || 'Unnamed', kg:+$('load').value || 0, flc:S.flc, ppk:S.ppk, amt:S.amt, time:Date.now(), target:+$('target').value||65, ex:false});
+  store.set('patta.ledger', LEDGER); setStep(4);
+  flash('Saved to today’s ledger');
+};
+let clearArmed = false;
+$('btnClear').onclick = () => {
+  if (!clearArmed){ clearArmed = true; $('btnClear').textContent = 'Tap again to clear'; setTimeout(() => { clearArmed = false; $('btnClear').textContent = 'Clear ledger'; }, 3000); return; }
+  LEDGER = []; store.set('patta.ledger', LEDGER); clearArmed = false; $('btnClear').textContent = 'Clear ledger'; renderLedger();
+};
+$('btnCopyCSV').onclick = () => {
+  const csv = ['time,grower,kg,fine_leaf_pct,price_per_kg,amount,example'].concat(LEDGER.map(r => [new Date(r.time).toISOString(), r.grower, r.kg, r.flc.toFixed(1), r.ppk.toFixed(2), r.amt.toFixed(2), r.ex?'yes':'no'].join(','))).join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(csv).then(() => { $('ledgerNote').textContent = 'CSV copied. Paste it into a spreadsheet.'; }, () => { $('ledgerNote').textContent = 'Copying is blocked here.'; });
+};
+function renderLedger(){
+  const rows = LEDGER.slice().sort((a,b)=>b.time-a.time);
+  const kg = LEDGER.reduce((s,r)=>s+r.kg,0), paid = LEDGER.reduce((s,r)=>s+r.amt,0);
+  const flcKg = kg ? LEDGER.reduce((s,r)=>s+r.flc*r.kg,0)/kg : 0;
+  $('tLoads').textContent = LEDGER.length; $('tKg').textContent = kg.toLocaleString('en-IN');
+  $('tFlc').textContent = LEDGER.length ? flcKg.toFixed(1)+'%' : '–'; $('tPaid').textContent = '₹' + Math.round(paid).toLocaleString('en-IN');
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  $('ledgerRows').innerHTML = rows.length ? rows.map(r => `<tr><td>${new Date(r.time).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})}</td><td>${esc(r.grower)} ${r.ex?'<span class="pill ex">example</span>':''}</td><td class="n">${r.kg}</td><td class="n">${r.flc.toFixed(1)}</td><td class="n">${r.ppk.toFixed(2)}</td><td class="n">${rupees(r.amt)}</td></tr>`).join('')
+    : '<tr><td colspan="6" class="note">No loads yet. Score a photo on the Gate tab, then tap Save to ledger.</td></tr>';
+  const by = {};
+  for (const r of LEDGER){ (by[r.grower] = by[r.grower] || {kg:0, f:0, n:0, target:r.target}); by[r.grower].kg += r.kg; by[r.grower].f += r.flc*r.kg; by[r.grower].n++; }
+  const gs = Object.entries(by).map(([g,v]) => ({g, avg: v.kg ? v.f/v.kg : 0, n:v.n, target:v.target})).sort((a,b)=>b.avg-a.avg);
+  $('growerRows').innerHTML = gs.length ? gs.map(x => `<tr><td>${esc(x.g)}<br><span class="note">${x.n} load${x.n>1?'s':''}</span></td><td style="width:40%"><div class="bar"><i style="width:${Math.min(100,x.avg)}%"></i><u style="left:${x.target}%"></u></div></td><td class="n">${x.avg.toFixed(1)}%</td><td>${x.avg >= x.target+8 ? '<span class="pill prem">premium</span>' : x.avg < x.target ? '<span class="pill low">below</span>' : ''}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="note">Growers appear here after the first saved load.</td></tr>';
+}
+
+/* ============================================================
+   SAMPLE GENERATOR: draws shoots on a virtual Patta mat
+   ============================================================ */
+function generateSample(kind){
+  const mix = {good:{fine:24,coarse:2,stem:1}, mixed:{fine:16,coarse:6,stem:2}, poor:{fine:7,coarse:11,stem:5}}[kind];
+  const W = 1200, H = 900, c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d'), rnd = (a,b) => a + Math.random()*(b-a);
+  x.fillStyle = '#F4F1EA'; x.fillRect(0,0,W,H);
+  const lg = x.createRadialGradient(W*rnd(.3,.7), H*rnd(.3,.6), 50, W/2, H/2, W*0.8);
+  lg.addColorStop(0,'rgba(255,253,245,0.6)'); lg.addColorStop(1,'rgba(205,198,185,0.55)');
+  x.fillStyle = lg; x.fillRect(0,0,W,H);
+  const sy = 820;
+  ['#C8312B','#2B5FC8','#B03CA8','#8C8C8C'].forEach((col,i) => { x.fillStyle = col; x.fillRect(40+i*60, sy, 48, 48); });
+  x.strokeStyle = '#555'; x.lineWidth = 2;
+  for (let i=0;i<=20;i++){ const xx = 330 + i*20; x.beginPath(); x.moveTo(xx, sy+48); x.lineTo(xx, sy+48-(i%5?12:24)); x.stroke(); }
+  x.fillStyle = '#666'; x.font = '18px Arial'; x.fillText('PATTA MAT v0', 780, sy+40);
+  const items = []; for (const k of CLS) for (let i=0;i<mix[k];i++) items.push(k);
+  items.sort(() => Math.random()-0.5);
+  const placed = [], truthOut = [];
+  for (const k of items){
+    const L = k==='fine' ? rnd(115,145) : k==='coarse' ? rnd(135,170) : rnd(120,170), r = L*0.5 + 6;
+    for (let t=0;t<2000;t++){
+      const px = rnd(30+r, W-30-r), py = rnd(30+r, sy-20-r);
+      if (placed.every(p => (p.x-px)**2+(p.y-py)**2 > (p.r+r)**2)){
+        placed.push({x:px,y:py,r}); truthOut.push({cls:k,x:px,y:py});
+        x.save(); x.translate(px,py); x.rotate(rnd(0,Math.PI*2));
+        x.shadowColor = 'rgba(0,0,0,0.18)'; x.shadowBlur = 5; x.shadowOffsetX = 2; x.shadowOffsetY = 3;
+        if (k==='fine') drawFine(x,L,rnd); else if (k==='coarse') drawCoarse(x,L,rnd); else drawStem(x,L,rnd);
+        x.restore(); break;
+      }
+    }
+  }
+  const id = x.getImageData(0,0,W,H), dd = id.data;
+  for (let i=0;i<dd.length;i+=4){ const n = (Math.random()-0.5)*10; dd[i]+=n; dd[i+1]+=n; dd[i+2]+=n; }
+  x.putImageData(id,0,0);
+  return {canvas:c, truth:truthOut};
+}
+function leafPath(x, len, wid){
+  x.beginPath(); x.moveTo(0,0);
+  x.bezierCurveTo(len*0.25, -wid*1.1, len*0.75, -wid*0.9, len, 0);
+  x.bezierCurveTo(len*0.75, wid*0.9, len*0.25, wid*1.1, 0, 0);
+  x.closePath();
+}
+function jit(hex, rnd, amt=14){ const n = parseInt(hex.slice(1),16), j=()=>Math.round(rnd(-amt,amt)); return `rgb(${((n>>16)&255)+j()},${((n>>8)&255)+j()},${(n&255)+j()})`; }
+function drawFine(x, L, rnd){
+  x.translate(0, L*0.45);
+  x.strokeStyle = jit('#8DB64A',rnd); x.lineWidth = 6; x.beginPath(); x.moveTo(0,0); x.lineTo(0,-L*0.9); x.stroke();
+  const leaf = (y, side, len, wid, col) => { x.save(); x.translate(0,y); x.rotate(side*rnd(0.6,0.95) - Math.PI/2); x.fillStyle = col; leafPath(x,len,wid); x.fill(); x.restore(); };
+  leaf(-L*0.25, -1, L*0.55, L*0.18, jit('#7DB23C',rnd));
+  leaf(-L*0.55,  1, L*0.47, L*0.16, jit('#92C24B',rnd));
+  x.save(); x.translate(0,-L*0.78); x.rotate(-Math.PI/2); x.fillStyle = jit('#B5D06A',rnd,10); leafPath(x, L*0.34, L*0.08); x.fill(); x.restore();
+}
+function drawCoarse(x, L, rnd){
+  x.translate(-L*0.5, 0);
+  x.strokeStyle = jit('#4E5B2C',rnd); x.lineWidth = 5; x.beginPath(); x.moveTo(-10,0); x.lineTo(L*0.1,0); x.stroke();
+  x.fillStyle = jit('#2F5E2A',rnd); leafPath(x, L, L*rnd(0.26,0.32)); x.fill();
+  x.strokeStyle = 'rgba(160,190,120,0.5)'; x.lineWidth = 2; x.beginPath(); x.moveTo(4,0); x.lineTo(L*0.95,0); x.stroke();
+}
+function drawStem(x, L, rnd){
+  x.strokeStyle = jit('#7A6A3A',rnd); x.lineWidth = rnd(5,7); x.lineCap = 'round';
+  x.beginPath(); x.moveTo(-L/2, 0); x.quadraticCurveTo(0, rnd(-12,12), L/2, rnd(-6,6)); x.stroke();
+}
+
+/* ============================================================
+   FERMENT: simulated colour curve with an early alert
+   ============================================================ */
+const fcan = $('fcan'), fx = fcan.getContext('2d');
+const F = {running:false, t:0, data:[], alerted:false, last:0, timer:0};
+['tIn','hIn','gIn'].forEach(id => $(id).addEventListener('input', () => { $('tV').textContent=$('tIn').value; $('hV').textContent=$('hIn').value; $('gV').textContent=$('gIn').value; if(!F.running) resetFerment(); }));
+$('fStart').onclick = () => { if (F.running) return; resetFerment(); F.running = true; F.last = performance.now(); F.timer = setInterval(() => stepFerment(performance.now()), 50); };
+$('fReset').onclick = () => { F.running = false; clearInterval(F.timer); resetFerment(); };
+function syncGate(){ if (S && S.N){ $('gIn').value = Math.round(S.flc); $('gV').textContent = Math.round(S.flc); $('gFrom').textContent = '(from the last gate scan)'; } }
+function params(){
+  const T = +$('tIn').value, Hm = +$('hIn').value, g = +$('gIn').value;
+  // warmer, more humid and finer leaf ferment faster
+  const k = 0.15 * (1 + 0.06*(T-27)) * (1 + 0.01*(Hm-92)) * (1 + 0.006*(g-65));
+  const t0 = Math.log(19)/k;
+  return {k, t0, peakT: 2*t0, top: 82 + 0.15*(g-65)};
+}
+function colourAt(t, P){
+  const rise = P.top/(1+Math.exp(-P.k*(t - P.t0))), over = Math.max(0, t-P.peakT)*0.9;
+  return Math.max(0, Math.min(100, rise + 4 - over + (Math.random()-0.5)*0.35));
+}
+function resetFerment(){ F.t=0; F.data=[]; F.alerted=false; const a=$('fAlert'); a.hidden=true; a.classList.remove('live'); $('fP').textContent = Math.round(params().peakT)+' min'; drawFerment(); updateReadout(); }
+function stepFerment(now){
+  if (!F.running){ clearInterval(F.timer); return; }
+  const dt = (now - F.last)/1000; F.last = now;
+  F.t += dt * (+$('speed').value);
+  const P = params(); F.data.push([F.t, colourAt(F.t, P)]);
+  const left = P.peakT - F.t, a = $('fAlert');
+  if (left <= 6 && left > 0){ a.hidden = false; a.classList.add('live'); a.textContent = `⚠ Stop soon: best point in about ${Math.max(1,Math.round(left))} min`; if(!F.alerted){ F.alerted = Math.round(F.t); beep(); } }
+  else if (left <= 0){ a.hidden = false; a.classList.remove('live'); a.textContent = `✅ Best point reached at ${Math.round(P.peakT)} min. Patta warned at ${F.alerted} min. Move this batch to the dryer.`; }
+  drawFerment(); updateReadout();
+  if (F.t >= P.peakT + 14){ F.running = false; clearInterval(F.timer); }
+}
+function updateReadout(){
+  const v = F.data.length ? F.data[F.data.length-1][1] : 4;
+  $('fT').textContent = Math.floor(F.t)+' min'; $('fC').textContent = v.toFixed(0);
+  const sw = $('swatch'); sw.style.background = leafColour(v); sw.textContent = v < 30 ? 'Green' : v < 65 ? 'Turning' : v < 85 ? 'Coppery' : 'Over-fermenting';
+}
+function leafColour(v){
+  const stops = [[0,[111,160,70]],[50,[150,130,55]],[80,[176,104,44]],[100,[110,62,32]]];
+  let a = stops[0], b = stops[stops.length-1];
+  for (let i=0;i<stops.length-1;i++) if (v>=stops[i][0] && v<=stops[i+1][0]){ a=stops[i]; b=stops[i+1]; }
+  const t = (v-a[0])/((b[0]-a[0])||1); return `rgb(${a[1].map((c,i)=>Math.round(c+(b[1][i]-c)*t)).join(',')})`;
+}
+function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function drawFerment(){
+  const W = fcan.width, H = fcan.height, P = params(), tmax = Math.max(60, Math.ceil((P.peakT + 16)/10)*10);
+  const X = t => 60 + (W-90)*t/tmax, Y = v => H-50 - (H-90)*v/100;
+  const axis = cssVar('--chart-axis') || '#4F7566', ink = cssVar('--chart-ink') || '#A9C2B4';
+  fx.clearRect(0,0,W,H);
+  fx.strokeStyle = axis; fx.lineWidth = 1;
+  for (let v=25; v<=100; v+=25){ fx.beginPath(); fx.moveTo(60,Y(v)); fx.lineTo(W-20,Y(v)); fx.globalAlpha = .35; fx.stroke(); fx.globalAlpha = 1; }
+  fx.lineWidth = 2; fx.beginPath(); fx.moveTo(60,20); fx.lineTo(60,H-50); fx.lineTo(W-20,H-50); fx.stroke();
+  fx.fillStyle = ink; fx.font = '16px "DM Sans",-apple-system,Arial'; fx.fillText('Minutes on the belt →', W-210, H-6);
+  fx.save(); fx.translate(22, H/2+70); fx.rotate(-Math.PI/2); fx.fillText('Colour: green → copper', 0, 0); fx.restore();
+  for (let m=0; m<=tmax; m+=10) fx.fillText(m, X(m)-8, H-30);
+  fx.fillStyle = 'rgba(224,160,96,0.13)'; fx.fillRect(X(P.peakT-6), 20, X(P.peakT)-X(P.peakT-6), H-70);
+  fx.setLineDash([8,8]); fx.strokeStyle = '#E0A060'; fx.beginPath(); fx.moveTo(X(P.peakT),20); fx.lineTo(X(P.peakT),H-50); fx.stroke(); fx.setLineDash([]);
+  fx.fillStyle = '#E0A060'; fx.fillText('predicted best point', Math.min(X(P.peakT)+6, W-170), 36);
+  if (F.data.length > 1){
+    const g = fx.createLinearGradient(X(0),0,X(P.peakT),0); g.addColorStop(0,'#6FBF73'); g.addColorStop(1,'#E0A060');
+    fx.strokeStyle = g; fx.lineWidth = 5; fx.lineCap = 'round'; fx.beginPath();
+    F.data.forEach(([t,v],i) => i ? fx.lineTo(X(t),Y(v)) : fx.moveTo(X(t),Y(v))); fx.stroke();
+    const [t,v] = F.data[F.data.length-1]; fx.fillStyle = leafColour(v); fx.beginPath(); fx.arc(X(t),Y(v),9,0,7); fx.fill(); fx.strokeStyle='#F4EEE1'; fx.lineWidth=2; fx.stroke();
+  }
+}
+function beep(){
+  try { const a = new (window.AudioContext||window.webkitAudioContext)(), o = a.createOscillator(), g = a.createGain();
+    o.frequency.value = 880; o.connect(g); g.connect(a.destination); g.gain.setValueAtTime(0.15, a.currentTime); o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime+0.6); o.stop(a.currentTime+0.6); } catch(e){}
+}
+
+/* ---------------- presenter keys ---------------- */
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k==='1') { location.hash = 'gate'; useSample('good'); }
+  else if (k==='2') { location.hash = 'gate'; useSample('mixed'); }
+  else if (k==='3') { location.hash = 'gate'; useSample('poor'); }
+  else if (k==='a') $('btnAI').click();
+  else if (k==='f') location.hash = 'ferment';
+  else if (k==='g') location.hash = 'gate';
+  else if (k==='l') location.hash = 'ledger';
+  else if (k===' ' && !$('viewFerment').hidden) { e.preventDefault(); $('fStart').click(); }
+});
+if (matchMedia('(pointer: coarse)').matches) $('keys').hidden = true;
+
+/* ---------------- start in a working state ---------------- */
+resetFerment();
+show();
+$('btnAdd').disabled = true;
+
+/* ---------------- self-test (local copy, open with ?selftest) ---------------- */
+if (FAST){
+  const kinds = ['good','mixed','poor','good','mixed','poor','good','mixed','poor'], out = [];
+  let i = 0;
+  window.__selftest = (S, tr) => {
+    const t = {fine:0,coarse:0,stem:0}; tr.forEach(s => t[s.cls]++);
+    let hit = 0;
+    for (const s of tr){ let best=null,bd=1e9; for (const c of S.comps){ const d=(c.cx-s.x*S.W/1200)**2+(c.cy-s.y*S.H/900)**2; if(d<bd){bd=d;best=c;} } if (best && best.cls===s.cls) hit++; }
+    out.push(`${kinds[i]}: truth F${t.fine}/C${t.coarse}/S${t.stem} | found F${S.T.fine.n}/C${S.T.coarse.n}/S${S.T.stem.n} | per-shoot ${hit}/${tr.length} | FLC ${S.flc.toFixed(1)}% range ${S.ci ? S.ci.map(v=>v.toFixed(0)).join('-') : '-'}`);
+    LOAD = [];
+    if (++i < kinds.length) setTimeout(() => useSample(kinds[i]), 0);
+    else { const pre = document.createElement('pre'); pre.id = 'selftest'; pre.textContent = out.join('\n'); document.body.appendChild(pre); document.title = 'SELFTEST DONE'; }
+  };
+  useSample(kinds[0]);
+} else {
+  const r = generateSample('good'); truth = r.truth;
+  $('srcNote').textContent = 'Showing a simulated sample. Take a photo or pick a sample to score your own.';
+  run(r.canvas, true);
+}
+</script>
